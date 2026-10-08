@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerador de declarações · Coren-SP Educação</title>
+  <meta name="description" content="Preenchimento e geração automática das declarações de docentes e alunos do Coren-SP Educação.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231373b9'/%3E%3Cpath d='M10 7h8l5 5v13H10z' fill='%23fff'/%3E%3Cpath d='M13 17h7M13 21h7' stroke='%231373b9' stroke-width='1.6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo-conteudo">
+      <a class="topo-marca" href="#/" aria-label="Início do gerador de declarações">
+        <img src="assets/img/logo-coren-sp.png" alt="Coren-SP – Conselho Regional de Enfermagem de São Paulo" width="148" height="36">
+      </a>
+      <span class="topo-separador" aria-hidden="true"></span>
+      <div class="topo-texto">
+        <strong>Coren-SP Educação</strong>
+        <span>Gerador de declarações</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+
+    <!-- Tela inicial -->
+    <section id="tela-inicio" class="inicio" aria-labelledby="titulo-inicio" hidden>
+      <h1 id="titulo-inicio">Qual declaração você precisa?</h1>
+      <p class="lead">Preencha os dados e baixe a declaração pronta, no modelo oficial, em formato Word (.docx).</p>
+
+      <div class="perfis">
+        <article class="perfil" aria-labelledby="perfil-docente">
+          <div class="perfil-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 5h18v11H3z"/><path d="M8 20h8M12 16v4"/><path d="M7 9h6M7 12h4"/></svg>
+          </div>
+          <h2 id="perfil-docente">Sou docente</h2>
+          <p>Declaração de aula ministrada no Coren-SP Educação. Escolha a modalidade:</p>
+          <div class="perfil-acoes">
+            <a class="opcao" href="#/docente/presencial">
+              <span>Declaração de aula presencial<small>Aula realizada na Sede do Coren-SP</small></span>
+              <svg class="seta" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="opcao" href="#/docente/online">
+              <span>Declaração de aula online<small>Aula pela plataforma Digital - WebiNar</small></span>
+              <svg class="seta" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="perfil" aria-labelledby="perfil-aluno">
+          <div class="perfil-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 9v6"/></svg>
+          </div>
+          <h2 id="perfil-aluno">Sou aluno</h2>
+          <p>Declaração de comparecimento ao Coren-SP, com data e horário.</p>
+          <div class="perfil-acoes">
+            <a class="opcao" href="#/aluno">
+              <span>Declaração de comparecimento<small>Nome, CPF, data e horário</small></span>
+              <svg class="seta" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </article>
+      </div>
+
+      <p class="privacidade">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <span>Os dados digitados ficam somente neste navegador: nada é enviado pela internet.</span>
+      </p>
+    </section>
+
+    <!-- Formulário + pré-visualização -->
+    <section id="tela-formulario" aria-labelledby="form-titulo" hidden>
+      <nav class="trilha" aria-label="Navegação">
+        <a class="voltar" href="#/">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+          Início
+        </a>
+      </nav>
+
+      <div class="cabecalho-form">
+        <div>
+          <p class="sobretitulo" id="form-sobretitulo"></p>
+          <h1 id="form-titulo"></h1>
+        </div>
+        <nav class="alternador" id="alternador" aria-label="Modalidade da aula">
+          <a href="#/docente/presencial" data-tipo="docente-presencial">Presencial</a>
+          <a href="#/docente/online" data-tipo="docente-online">Online</a>
+        </nav>
+      </div>
+
+      <div class="area-trabalho">
+        <form id="formulario" class="formulario" novalidate>
+          <p id="resumo-erros" class="alerta-erro" role="alert" hidden></p>
+          <div id="campos" class="campos"></div>
+          <p class="nota">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+            <span id="nota-data"></span>
+          </p>
+          <div class="acoes-form">
+            <button type="submit" class="botao botao-primario botao-grande" id="botao-gerar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+              Gerar declaração (.docx)
+            </button>
+            <button type="button" class="botao botao-terciario" id="botao-limpar">Limpar formulário</button>
+          </div>
+        </form>
+
+        <aside class="painel-previa" aria-labelledby="titulo-previa">
+          <div class="previa-topo">
+            <h2 id="titulo-previa">Pré-visualização <span id="status-previa" class="status-previa"></span></h2>
+            <div class="previa-controles">
+              <div class="zoom" role="group" aria-label="Tamanho da pré-visualização">
+                <button type="button" data-zoom="largura" aria-pressed="true">Largura</button>
+                <button type="button" data-zoom="pagina" aria-pressed="false">Página inteira</button>
+              </div>
+              <label class="interruptor"><input type="checkbox" id="destacar" checked> Destacar campos</label>
+            </div>
+          </div>
+          <div id="previa" class="previa"></div>
+          <ul class="legenda" id="legenda">
+            <li><span class="amostra campo-preenchido"></span>Preenchido</li>
+            <li><span class="amostra campo-pendente"></span>Falta preencher</li>
+            <li><span class="amostra campo-manual"></span>Preenchimento manual (data)</li>
+          </ul>
+          <p class="previa-nota">Pré-visualização aproximada, para conferência. O arquivo .docx gerado mantém exatamente o layout do modelo original.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="sem-js">Esta aplicação precisa do JavaScript habilitado no navegador.</p></noscript>
+
+  <script src="assets/vendor/jszip.min.js"></script>
+  <script src="assets/js/modelos-embutidos.js"></script>
+  <script src="assets/js/formatacao.js"></script>
+  <script src="assets/js/docx.js"></script>
+  <script src="assets/js/previa.js"></script>
+  <script src="assets/js/declaracoes.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
