@@ -65,6 +65,11 @@ enviada ao GitHub (push) aparece no site em cerca de um minuto. Links diretos pa
 
 Por ser um site estático, a pasta também pode ser copiada para qualquer outro servidor web.
 
+O navegador guarda os arquivos do site por alguns minutos. Para que uma atualização chegue a
+todos, os endereços dos arquivos no `index.html` levam um número de versão (`?v=...`): ao alterar
+o código, troque esse número (a ferramenta de modelos faz isso sozinha). Quem estiver com o site
+aberto vê a novidade ao recarregar a página (Ctrl + F5).
+
 ## Atualizar os modelos
 
 Os modelos usados ficam em `modelos/` e são embutidos em `assets/js/modelos-embutidos.js`

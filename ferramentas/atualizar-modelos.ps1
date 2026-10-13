@@ -257,6 +257,15 @@ function Write-ModelosEmbutidos {
   [void]$sb.AppendLine('};')
   [System.IO.File]::WriteAllText($arquivoJs, $sb.ToString(), $utf8)
   Write-Host "Arquivo atualizado: assets\js\modelos-embutidos.js"
+
+  # Nova versão nos endereços dos arquivos do index.html: obriga o navegador de quem usa o site
+  # a buscar os arquivos atualizados, em vez de reaproveitar os antigos guardados em cache.
+  $indice = Join-Path $raiz 'index.html'
+  $html = [System.IO.File]::ReadAllText($indice, $utf8)
+  $versao = Get-Date -Format 'yyyyMMddHHmm'
+  $html = [regex]::Replace($html, '((?:href|src)="assets/(?:css|js|vendor)/[^"?]+\.(?:css|js))(?:\?v=[^"]*)?"', ('$1?v=' + $versao + '"'))
+  [System.IO.File]::WriteAllText($indice, $html, $utf8)
+  Write-Host "Versão dos arquivos no index.html: $versao"
 }
 
 New-Item -ItemType Directory -Force -Path $pastaModelos | Out-Null
