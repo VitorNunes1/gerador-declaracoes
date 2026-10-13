@@ -23,7 +23,7 @@ quando aberto a partir do `index.html`.
 | Declaração | Campo do formulário | No modelo | Como aparece |
 |---|---|---|---|
 | Docente (presencial e online) | Nome completo | `[NOME]` | como digitado (mantém o negrito do modelo) |
-| | Documento (COREN-SP ou CPF) e número | `Coren-SP 000.000-ENF` | `Coren-SP 123456-ENF` (número como digitado, sem acréscimos) ou `CPF 529.982.247-25` (CPF conferido) |
+| | Documento (COREN-SP ou CPF) e número | `Coren-SP 000.000-ENF` | `Coren-SP 123456` (número como digitado, sem acréscimos) ou `CPF 529.982.247-25` (CPF conferido) |
 | | Programa | `[PROGRAMA]` | como digitado (a palavra "Mais" depois do programa já faz parte do modelo) |
 | | Aulas (tabela): data, início, término, nome | `00/00/0000`, `00h00`, `00h00`, `[NOME DA AULA]` | uma linha da tabela para cada aula: `08/10/2026`, `08h00`, `12h00`, nome |
 | Aluno | Nome completo | `[NOME]` | como digitado (negrito) |

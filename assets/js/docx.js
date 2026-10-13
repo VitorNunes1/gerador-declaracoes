@@ -96,7 +96,8 @@
    * conteúdo do marcador (colchetes são ignorados nessa escolha).
    *
    * `valor(indice, encontrado)` devolve o texto da ocorrência; vazio/null mantém o marcador
-   * (com `opcoes.apagar`, texto vazio apaga a ocorrência).
+   * (com `opcoes.apagar`, texto vazio apaga a ocorrência). Pode devolver também { texto }: um texto
+   * provisório, ainda incompleto, que a pré-visualização destaca como pendente.
    * `opcoes.marcar` (só na pré-visualização): true, ou função (vazio) → 'preenchido' | 'pendente' | 'manual'.
    * Retorna o número de ocorrências encontradas.
    */
@@ -115,10 +116,12 @@
         const fim = ini + m[0].length;
 
         let novo = valor(ocorrencia, m[0]);
+        const provisorio = novo != null && typeof novo === 'object';
+        if (provisorio) novo = novo.texto;
         const vazio = novo == null || (novo === '' && !opcoes.apagar);
         if (vazio) novo = m[0];
         if (opcoes.marcar) {
-          const tipo = typeof opcoes.marcar === 'function' ? opcoes.marcar(vazio) : (vazio ? 'pendente' : 'preenchido');
+          const tipo = typeof opcoes.marcar === 'function' ? opcoes.marcar(vazio) : (vazio || provisorio ? 'pendente' : 'preenchido');
           if (tipo) novo = MARCAS[tipo][0] + novo + MARCAS[tipo][1];
         }
 

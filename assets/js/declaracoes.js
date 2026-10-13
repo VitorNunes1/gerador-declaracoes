@@ -2,7 +2,8 @@
  * Tipos de declaração: campos do formulário, validação e preenchimento de cada modelo.
  *
  * Marcadores substituídos (exatamente como estão nos modelos):
- *   Docente (presencial e online): [NOME], "Coren-SP 000.000-ENF" (documento: COREN-SP ou CPF),
+ *   Docente (presencial e online): [NOME], "Coren-SP 000.000-ENF" (texto do modelo, trocado pelo
+ *     documento escolhido: "Coren-SP <número>" ou "CPF <número>"),
  *     [PROGRAMA] e, na tabela de aulas: 00/00/0000, 00h00 (início), 00h00 (término), [NOME DA AULA].
  *     O trecho "no dia [DIA] de [MÊS] de [ANO]" (ou "[DIA] de [MÊS] de [ANO]", no modelo online)
  *     é retirado, e a frase termina em "conforme abaixo."
@@ -35,13 +36,18 @@
   const usaCpf = (e) => e.tipoDocumento === 'cpf';
 
   /**
-   * Documento do docente como aparece na declaração: "Coren-SP 123456-ENF" ou "CPF 123.456.789-00",
-   * sem quebra de linha no meio.
+   * Documento do docente como aparece na declaração ("Coren-SP 123456" ou "CPF 123.456.789-00",
+   * sem quebra de linha no meio). Enquanto não está completo, `texto` traz o modelo do tipo
+   * escolhido ou o que já foi digitado, para a pré-visualização.
    */
   function documentoDocente(e) {
-    if (usaCpf(e)) return F.somenteDigitos(e.documento).length === 11 ? F.inseparavel(`CPF ${F.mascararCpf(e.documento)}`) : '';
+    if (usaCpf(e)) {
+      const digitos = F.somenteDigitos(e.documento);
+      const completo = digitos.length === 11 && F.cpfValido(digitos);
+      return { completo, texto: F.inseparavel(`CPF ${digitos ? F.mascararCpf(digitos) : '000.000.000-00'}`) };
+    }
     const numero = F.numeroCoren(e.documento);
-    return numero ? F.inseparavel(`Coren-SP ${numero}`) : '';
+    return { completo: Boolean(numero), texto: F.inseparavel(`Coren-SP ${numero || '000.000'}`) };
   }
 
   function validarDocente(e) {
@@ -68,9 +74,11 @@
   }
 
   function valoresDocente(e) {
+    const documento = documentoDocente(e);
     return {
       nome: F.normalizarEspacos(e.nome),
-      documento: documentoDocente(e),
+      documento: documento.completo ? documento.texto : '',
+      documentoProvisorio: documento.texto,
       programa: F.normalizarEspacos(e.programa),
       aulas: e.aulas.map((a) => ({
         data: F.dataNumerica(a.data),
@@ -89,7 +97,9 @@
     const texto = D.paragrafos(doc).filter((p) => !tabela.contains(p));
 
     exigir(D.substituir(texto, /\[NOME\]/g, () => v.nome, op), '[NOME]');
-    exigir(D.substituir(texto, /Coren-SP 000\.000-ENF/g, () => v.documento, op), 'Coren-SP 000.000-ENF');
+    // Na pré-visualização, enquanto o número não está completo, aparece o modelo do documento escolhido.
+    const documento = () => v.documento || (previa ? { texto: v.documentoProvisorio } : null);
+    exigir(D.substituir(texto, /Coren-SP 000\.000-ENF/g, documento, op), 'Coren-SP 000.000-ENF');
     exigir(D.substituir(texto, /\[PROGRAMA\]/g, () => v.programa, op), '[PROGRAMA]');
     // "..., no dia [DIA] de [MÊS] de [ANO] conforme abaixo." → "..., conforme abaixo."
     exigir(D.apagar(texto, /(?:no dia )?\[DIA\] de \[MÊS\] de \[ANO\] /g), '[DIA] de [MÊS] de [ANO]');
@@ -122,15 +132,18 @@
             id: 'documento', rotulo: 'Número do documento', tipo: 'texto', metade: true,
             atributos: (e) => (usaCpf(e)
               ? { placeholder: '000.000.000-00', inputmode: 'numeric', maxlength: '14' }
-              : { placeholder: 'Ex.: 123456-ENF', inputmode: null, maxlength: '60' }),
+              : { placeholder: '000.000', inputmode: null, maxlength: '60' }),
             mascara: (valor, e) => (usaCpf(e) ? F.mascararCpf(valor) : valor),
           },
         ],
         // Dica da linha do documento, exibida abaixo dos dois campos.
         eco: (e) => {
           const doc = documentoDocente(e);
-          if (doc) return `Na declaração: “Drª ${F.normalizarEspacos(e.nome) || '…'}, ${doc}, ministrou…”`;
-          return usaCpf(e) ? 'Digite o número do CPF.' : 'Digite o número do COREN-SP como deve aparecer (ex.: 123456-ENF).';
+          if (doc.completo) return `Na declaração: “Drª ${F.normalizarEspacos(e.nome) || '…'}, ${doc.texto}, ministrou…”`;
+          if (!usaCpf(e)) return 'Digite o número do COREN-SP como deve aparecer na declaração.';
+          const faltam = 11 - F.somenteDigitos(e.documento).length;
+          if (faltam === 11) return 'Digite o número do CPF.';
+          return faltam > 0 ? `Faltam ${faltam} ${faltam === 1 ? 'dígito' : 'dígitos'} do CPF.` : 'CPF inválido. Confira os números.';
         },
       },
       {
@@ -185,9 +198,13 @@
   }
 
   function valoresAluno(e) {
+    const digitos = F.somenteDigitos(e.cpf);
+    const cpf = digitos ? F.inseparavel(F.mascararCpf(digitos)) : '';
+    const completo = digitos.length === 11 && F.cpfValido(digitos);
     return {
       nome: F.normalizarEspacos(e.nome),
-      cpf: F.somenteDigitos(e.cpf).length === 11 ? F.inseparavel(F.mascararCpf(e.cpf)) : '',
+      cpf: completo ? cpf : '',
+      cpfProvisorio: completo ? '' : cpf,
       data: F.dataNumerica(e.data),
       inicio: F.horaComDoisPontos(e.inicio),
       fim: F.horaComDoisPontos(e.fim),
@@ -198,7 +215,9 @@
     const op = { marcar: previa };
     const texto = D.paragrafos(doc);
     exigir(D.substituir(texto, /\[NOME\]/g, () => v.nome, op), '[NOME]');
-    exigir(D.substituir(texto, /\[000\.000\.000-00\]/g, () => v.cpf, op), '[000.000.000-00]');
+    // Na pré-visualização, o CPF ainda incompleto aparece como digitado (destacado como pendente).
+    const cpf = () => v.cpf || (previa && v.cpfProvisorio ? { texto: v.cpfProvisorio } : null);
+    exigir(D.substituir(texto, /\[000\.000\.000-00\]/g, cpf, op), '[000.000.000-00]');
     exigir(D.substituir(texto, /\[00\/00\/0000\]/g, () => v.data, op), '[00/00/0000]');
     exigir(D.substituir(texto, /\[00:00\]/g, (i) => (i === 0 ? v.inicio : v.fim), op), '[00:00]');
     if (previa) D.substituir(texto, MANUAIS_ALUNO, () => null, { marcar: () => 'manual' });

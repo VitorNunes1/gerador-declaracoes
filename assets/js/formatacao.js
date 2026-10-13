@@ -72,7 +72,7 @@
   const normalizarEspacos = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
   /**
-   * Número do COREN-SP exatamente como digitado (ex.: 123456, 123.456-ENF, 123456-TE).
+   * Número do COREN-SP exatamente como digitado (ex.: 123456 ou 123.456), sem acréscimos.
    * Se a pessoa digitar também "COREN-SP" ou "nº" no início, eles são retirados, porque o
    * texto "Coren-SP" já é escrito antes do número na declaração.
    */
