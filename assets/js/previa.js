@@ -279,7 +279,7 @@
       if (!n.parentElement.closest('.w-flutuante')) textos.push(n);
     }
     for (let i = textos.length - 1; i >= 0; i--) {
-      textos[i].data = textos[i].data.replace(/[  ]+$/, '');
+      textos[i].data = textos[i].data.replace(/[ \u00A0]+$/, '');
       if (textos[i].data.replace(/\u200B/g, '')) break;
     }
   }

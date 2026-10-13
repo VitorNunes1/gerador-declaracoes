@@ -166,7 +166,9 @@ label { font-weight: 600; font-size: 14px; }
 .entrada[aria-invalid="true"] { border-color: var(--erro); background: #fffafa; }
 .entrada[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2); }
 
+select.entrada { cursor: pointer; padding-right: 8px; }
 .dica { margin: 0; font-size: 13px; color: var(--tinta-3); }
+.dica-secao { margin-top: 10px; }
 .dica-aviso { color: var(--alerta); font-weight: 600; }
 .mensagem-erro { margin: 0; font-size: 13px; font-weight: 600; color: var(--erro); }
 

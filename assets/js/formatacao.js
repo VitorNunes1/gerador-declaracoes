@@ -4,9 +4,6 @@
 (function (NS) {
   'use strict';
 
-  const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-
   const doisDigitos = (n) => String(n).padStart(2, '0');
 
   /** "AAAA-MM-DD" (valor de <input type="date">) → { dia, mes, ano }, ou null se inválida. */
@@ -24,13 +21,6 @@
   function dataNumerica(valor) {
     const d = lerData(valor);
     return d ? `${doisDigitos(d.dia)}/${doisDigitos(d.mes)}/${d.ano}` : '';
-  }
-
-  /** Partes da data para "[DIA] de [MÊS] de [ANO]": { dia: '8', mes: 'outubro', ano: '2026' } (dia 1 → "1º"). */
-  function dataPorExtenso(valor) {
-    const d = lerData(valor);
-    if (!d) return null;
-    return { dia: d.dia === 1 ? '1º' : String(d.dia), mes: MESES[d.mes - 1], ano: String(d.ano) };
   }
 
   /** "HH:MM" (valor de <input type="time">) → minutos desde 00:00, ou null se inválido. */
@@ -79,25 +69,24 @@
     return digito(9) === Number(d[9]) && digito(10) === Number(d[10]);
   }
 
+  const normalizarEspacos = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
   /**
-   * Número do COREN-SP no formato do modelo ("000.000-ENF").
-   * Somente números (ex.: 123456) → 123.456-ENF, mantendo o sufixo do modelo.
-   * Com categoria (ex.: 123456-TE) → 123.456-TE. Outros formatos ficam como digitados.
+   * Número do COREN-SP exatamente como digitado (ex.: 123456, 123.456-ENF, 123456-TE).
+   * Se a pessoa digitar também "COREN-SP" ou "nº" no início, eles são retirados, porque o
+   * texto "Coren-SP" já é escrito antes do número na declaração.
    */
-  function formatarCoren(valor) {
-    const original = String(valor || '').trim();
-    const s = original.toUpperCase()
-      .replace(/^COREN\s*-?\s*SP\s*:?\s*/, '')
-      .replace(/^COREN\s*:?\s*/, '')
-      .replace(/^N[º°O.]\s*/, '')
-      .replace(/\s+/g, '');
-    const m = /^(\d[\d.]*)(?:-?([A-Z]{1,6}))?$/.exec(s);
-    if (!m) return original;
-    const numero = m[1].replace(/\./g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return `${numero}-${m[2] || 'ENF'}`;
+  function numeroCoren(valor) {
+    return normalizarEspacos(valor)
+      .replace(/^coren\s*(?:-\s*)?(?:sp)?\s*:?\s*/i, '')
+      .replace(/^n\s*[º°o.]\s*/i, '')
+      .trim();
   }
 
-  const normalizarEspacos = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+  /** Impede quebra de linha dentro do texto (ex.: "CPF 529.982.247-25"): espaços e hífens inseparáveis. */
+  function inseparavel(texto) {
+    return String(texto || '').replace(/ /g, '\u00A0').replace(/-/g, '\u2011');
+  }
 
   /** Remove caracteres que o Windows não aceita em nomes de arquivo. */
   function nomeDeArquivo(s) {
@@ -107,7 +96,7 @@
   }
 
   NS.formatacao = {
-    MESES, lerData, dataNumerica, dataPorExtenso, lerHora, horaComH, horaComDoisPontos,
-    somenteDigitos, mascararCpf, cpfValido, formatarCoren, normalizarEspacos, nomeDeArquivo,
+    lerData, dataNumerica, lerHora, horaComH, horaComDoisPontos,
+    somenteDigitos, mascararCpf, cpfValido, numeroCoren, normalizarEspacos, inseparavel, nomeDeArquivo,
   };
 })(window.Declaracoes = window.Declaracoes || {});

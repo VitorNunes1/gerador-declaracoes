@@ -95,7 +95,8 @@
    * texto completo do parágrafo e o novo texto herda a formatação do trecho onde começa o
    * conteúdo do marcador (colchetes são ignorados nessa escolha).
    *
-   * `valor(indice, encontrado)` devolve o texto da ocorrência; vazio/null mantém o marcador.
+   * `valor(indice, encontrado)` devolve o texto da ocorrência; vazio/null mantém o marcador
+   * (com `opcoes.apagar`, texto vazio apaga a ocorrência).
    * `opcoes.marcar` (só na pré-visualização): true, ou função (vazio) → 'preenchido' | 'pendente' | 'manual'.
    * Retorna o número de ocorrências encontradas.
    */
@@ -114,7 +115,7 @@
         const fim = ini + m[0].length;
 
         let novo = valor(ocorrencia, m[0]);
-        const vazio = novo == null || novo === '';
+        const vazio = novo == null || (novo === '' && !opcoes.apagar);
         if (vazio) novo = m[0];
         if (opcoes.marcar) {
           const tipo = typeof opcoes.marcar === 'function' ? opcoes.marcar(vazio) : (vazio ? 'pendente' : 'preenchido');
@@ -152,6 +153,11 @@
       }
     }
     return ocorrencia;
+  }
+
+  /** Apaga do texto dos parágrafos as ocorrências de `regex`; retorna quantas foram apagadas. */
+  function apagar(listaParagrafos, regex) {
+    return substituir(listaParagrafos, regex, () => '', { apagar: true });
   }
 
   /** Linha de tabela (w:tr) cujo texto contém `marcador`. */
@@ -209,8 +215,29 @@
     if (itens.length) pai.removeChild(linhaModelo);
   }
 
+  /**
+   * O Word representa o hífen inseparável com um elemento próprio (w:noBreakHyphen), com a mesma
+   * aparência do hífen comum; o caractere U+2011 é convertido nesse elemento.
+   */
+  function converterHifensInseparaveis(doc) {
+    for (const t of Array.from(doc.getElementsByTagNameNS(W, 't'))) {
+      if (!t.textContent.includes('\u2011')) continue;
+      const pai = t.parentNode;
+      t.textContent.split('\u2011').forEach((parte, i) => {
+        if (i > 0) pai.insertBefore(doc.createElementNS(W, 'w:noBreakHyphen'), t);
+        if (parte) {
+          const novo = doc.createElementNS(W, 'w:t');
+          definirTexto(novo, parte);
+          pai.insertBefore(novo, t);
+        }
+      });
+      pai.removeChild(t);
+    }
+  }
+
   /** Monta o .docx: o pacote original com apenas o word/document.xml substituído. */
   async function montar(modelo, doc) {
+    converterHifensInseparaveis(doc);
     const zip = await JSZip.loadAsync(modelo.bytes);
     zip.file('word/document.xml', escreverXml(doc));
     return zip.generateAsync({
@@ -223,6 +250,6 @@
 
   NS.docx = {
     W, MARCAS, carregar, lerXml, escreverXml, paragrafos, textoDoParagrafo,
-    substituir, linhaComMarcador, repetirLinha, montar,
+    substituir, apagar, linhaComMarcador, repetirLinha, montar,
   };
 })(window.Declaracoes = window.Declaracoes || {});

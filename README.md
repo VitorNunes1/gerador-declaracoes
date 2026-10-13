@@ -23,14 +23,17 @@ quando aberto a partir do `index.html`.
 | Declaração | Campo do formulário | No modelo | Como aparece |
 |---|---|---|---|
 | Docente (presencial e online) | Nome completo | `[NOME]` | como digitado (mantém o negrito do modelo) |
-| | COREN-SP | `000.000-ENF` | `123456` → `123.456-ENF` (com outra categoria, ex. `123456-TE`, ela é mantida) |
+| | Documento (COREN-SP ou CPF) e número | `Coren-SP 000.000-ENF` | `Coren-SP 123456-ENF` (número como digitado, sem acréscimos) ou `CPF 529.982.247-25` (CPF conferido) |
 | | Programa | `[PROGRAMA]` | como digitado (a palavra "Mais" depois do programa já faz parte do modelo) |
-| | Data da atividade | `[DIA] de [MÊS] de [ANO]` | `8 de outubro de 2026` (dia 1 → `1º`) |
 | | Aulas (tabela): data, início, término, nome | `00/00/0000`, `00h00`, `00h00`, `[NOME DA AULA]` | uma linha da tabela para cada aula: `08/10/2026`, `08h00`, `12h00`, nome |
 | Aluno | Nome completo | `[NOME]` | como digitado (negrito) |
 | | CPF | `[000.000.000-00]` | `529.982.247-25` (negrito; os dígitos verificadores são conferidos) |
 | | Data da atividade | `[00/00/0000]` | `08/10/2026` |
 | | Horário de início e de término | `[00:00]` às `[00:00]` | `14:00` às `15:30` |
+
+Nas declarações de docente, o trecho `no dia [DIA] de [MÊS] de [ANO]` (no modelo online,
+`[DIA] de [MÊS] de [ANO]`) é retirado: a frase termina em "…, conforme abaixo.", e as datas
+ficam apenas na tabela de aulas.
 
 A **data da assinatura** (docentes) e a **data da declaração** (aluno) não têm campo no formulário:
 ficam no documento como no modelo, para preenchimento manual.
@@ -103,7 +106,7 @@ além dos campos:
 
 - Modelo online: a data da assinatura está escrita `MÊS ASSINATURA]`, sem o colchete inicial.
 - Modelo presencial: há um ponto (`.`) sozinho na linha logo abaixo da tabela.
-- Modelos de docente: `Drª`, o sufixo `-ENF` e a palavra `Mais` depois do programa são texto fixo.
+- Modelos de docente: `Drª` e a palavra `Mais` depois do programa são texto fixo.
 - Com muitas aulas (cerca de 20 ou mais), a declaração passa para duas páginas e a linha
   "São Paulo, [DIA ASSINATURA]…" pode encostar na faixa azul do rodapé, como acontece no próprio
   modelo do Word. Nesses casos, ajuste o espaçamento no Word antes de imprimir.

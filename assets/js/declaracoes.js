@@ -2,8 +2,10 @@
  * Tipos de declaração: campos do formulário, validação e preenchimento de cada modelo.
  *
  * Marcadores substituídos (exatamente como estão nos modelos):
- *   Docente (presencial e online): [NOME], 000.000-ENF, [PROGRAMA], [DIA], [MÊS], [ANO]
- *     e, na tabela de aulas: 00/00/0000, 00h00 (início), 00h00 (término), [NOME DA AULA]
+ *   Docente (presencial e online): [NOME], "Coren-SP 000.000-ENF" (documento: COREN-SP ou CPF),
+ *     [PROGRAMA] e, na tabela de aulas: 00/00/0000, 00h00 (início), 00h00 (término), [NOME DA AULA].
+ *     O trecho "no dia [DIA] de [MÊS] de [ANO]" (ou "[DIA] de [MÊS] de [ANO]", no modelo online)
+ *     é retirado, e a frase termina em "conforme abaixo."
  *   Aluno: [NOME], [000.000.000-00], [00/00/0000], [00:00] (início), [00:00] (término)
  * A data da assinatura/declaração não é preenchida: fica no documento para preenchimento manual.
  */
@@ -30,14 +32,28 @@
   // ---------------------------------------------------------------- Docente
 
   const aulaVazia = (data = '') => ({ data, inicio: '', fim: '', aula: '' });
+  const usaCpf = (e) => e.tipoDocumento === 'cpf';
+
+  /**
+   * Documento do docente como aparece na declaração: "Coren-SP 123456-ENF" ou "CPF 123.456.789-00",
+   * sem quebra de linha no meio.
+   */
+  function documentoDocente(e) {
+    if (usaCpf(e)) return F.somenteDigitos(e.documento).length === 11 ? F.inseparavel(`CPF ${F.mascararCpf(e.documento)}`) : '';
+    const numero = F.numeroCoren(e.documento);
+    return numero ? F.inseparavel(`Coren-SP ${numero}`) : '';
+  }
 
   function validarDocente(e) {
     const erros = {};
     if (!F.normalizarEspacos(e.nome)) erros.nome = 'Informe o nome completo.';
-    if (!F.normalizarEspacos(e.coren)) erros.coren = 'Informe o número do COREN-SP.';
+    if (usaCpf(e)) {
+      if (!F.somenteDigitos(e.documento)) erros.documento = 'Informe o CPF.';
+      else if (!F.cpfValido(e.documento)) erros.documento = 'CPF inválido. Confira os números.';
+    } else if (!F.numeroCoren(e.documento)) {
+      erros.documento = 'Informe o número do COREN-SP.';
+    }
     if (!F.normalizarEspacos(e.programa)) erros.programa = 'Informe o programa.';
-    const erroData = erroDeData(e.data, 'Informe a data da atividade.');
-    if (erroData) erros.data = erroData;
     if (!e.aulas.length) erros.aulas = 'Adicione ao menos uma aula.';
     e.aulas.forEach((a, i) => {
       const chave = (campo) => `aulas.${i}.${campo}`;
@@ -52,14 +68,10 @@
   }
 
   function valoresDocente(e) {
-    const extenso = F.dataPorExtenso(e.data) || {};
     return {
       nome: F.normalizarEspacos(e.nome),
-      coren: F.formatarCoren(e.coren),
+      documento: documentoDocente(e),
       programa: F.normalizarEspacos(e.programa),
-      dia: extenso.dia || '',
-      mes: extenso.mes || '',
-      ano: extenso.ano || '',
       aulas: e.aulas.map((a) => ({
         data: F.dataNumerica(a.data),
         inicio: F.horaComH(a.inicio),
@@ -77,11 +89,10 @@
     const texto = D.paragrafos(doc).filter((p) => !tabela.contains(p));
 
     exigir(D.substituir(texto, /\[NOME\]/g, () => v.nome, op), '[NOME]');
-    exigir(D.substituir(texto, /000\.000-ENF/g, () => v.coren, op), '000.000-ENF');
+    exigir(D.substituir(texto, /Coren-SP 000\.000-ENF/g, () => v.documento, op), 'Coren-SP 000.000-ENF');
     exigir(D.substituir(texto, /\[PROGRAMA\]/g, () => v.programa, op), '[PROGRAMA]');
-    exigir(D.substituir(texto, /\[DIA\]/g, () => v.dia, op), '[DIA]');
-    exigir(D.substituir(texto, /\[MÊS\]/g, () => v.mes, op), '[MÊS]');
-    exigir(D.substituir(texto, /\[ANO\]/g, () => v.ano, op), '[ANO]');
+    // "..., no dia [DIA] de [MÊS] de [ANO] conforme abaixo." → "..., conforme abaixo."
+    exigir(D.apagar(texto, /(?:no dia )?\[DIA\] de \[MÊS\] de \[ANO\] /g), '[DIA] de [MÊS] de [ANO]');
 
     D.repetirLinha(linha, v.aulas, (celulas, aula) => {
       D.substituir(celulas, /00\/00\/0000/g, () => aula.data, op);
@@ -103,10 +114,24 @@
             dica: 'Aparece após "Drª" na declaração.',
           },
           {
-            id: 'coren', rotulo: 'COREN-SP', tipo: 'coren', placeholder: 'Ex.: 123456 ou 123.456-ENF',
-            eco: (e) => (F.normalizarEspacos(e.coren) ? `Na declaração: Coren-SP ${F.formatarCoren(e.coren)}` : 'Somente números: o sufixo -ENF do modelo é mantido.'),
+            id: 'tipoDocumento', rotulo: 'Documento', tipo: 'escolha', metade: true,
+            opcoes: [{ valor: 'coren', rotulo: 'COREN-SP' }, { valor: 'cpf', rotulo: 'CPF' }],
+            limpa: 'documento', // COREN e CPF são números diferentes: ao trocar, o número é apagado
+          },
+          {
+            id: 'documento', rotulo: 'Número do documento', tipo: 'texto', metade: true,
+            atributos: (e) => (usaCpf(e)
+              ? { placeholder: '000.000.000-00', inputmode: 'numeric', maxlength: '14' }
+              : { placeholder: 'Ex.: 123456-ENF', inputmode: null, maxlength: '60' }),
+            mascara: (valor, e) => (usaCpf(e) ? F.mascararCpf(valor) : valor),
           },
         ],
+        // Dica da linha do documento, exibida abaixo dos dois campos.
+        eco: (e) => {
+          const doc = documentoDocente(e);
+          if (doc) return `Na declaração: “Drª ${F.normalizarEspacos(e.nome) || '…'}, ${doc}, ministrou…”`;
+          return usaCpf(e) ? 'Digite o número do CPF.' : 'Digite o número do COREN-SP como deve aparecer (ex.: 123456-ENF).';
+        },
       },
       {
         titulo: 'Atividade',
@@ -116,13 +141,6 @@
             eco: (e) => `Na declaração: “${trecho} ${F.normalizarEspacos(e.programa) || '…'} Mais”`,
             aviso: (e) => (/\bmais$/i.test(F.normalizarEspacos(e.programa))
               ? 'O modelo já tem a palavra “Mais” depois do programa; ela ficaria repetida.' : null),
-          },
-          {
-            id: 'data', rotulo: 'Data da atividade', tipo: 'data',
-            eco: (e) => {
-              const x = F.dataPorExtenso(e.data);
-              return x ? `Na declaração: ${x.dia} de ${x.mes} de ${x.ano}` : 'Escrita por extenso: dia, mês e ano.';
-            },
           },
         ],
       },
@@ -142,7 +160,7 @@
       secoes: camposDocente(modalidade),
       tabelaAulas: true,
       notaData: 'A data da assinatura (“São Paulo, [DIA ASSINATURA] de [MÊS ASSINATURA] de [ANO ASSINATURA]”) não é preenchida aqui: ela permanece no documento para ser preenchida manualmente depois.',
-      estadoInicial: () => ({ nome: '', coren: '', programa: '', data: '', aulas: [aulaVazia()] }),
+      estadoInicial: () => ({ nome: '', tipoDocumento: 'coren', documento: '', programa: '', aulas: [aulaVazia()] }),
       aulaVazia,
       validar: validarDocente,
       valores: valoresDocente,
@@ -169,7 +187,7 @@
   function valoresAluno(e) {
     return {
       nome: F.normalizarEspacos(e.nome),
-      cpf: F.somenteDigitos(e.cpf).length === 11 ? F.mascararCpf(e.cpf) : '',
+      cpf: F.somenteDigitos(e.cpf).length === 11 ? F.inseparavel(F.mascararCpf(e.cpf)) : '',
       data: F.dataNumerica(e.data),
       inicio: F.horaComDoisPontos(e.inicio),
       fim: F.horaComDoisPontos(e.fim),
@@ -198,7 +216,11 @@
         titulo: 'Dados do aluno',
         campos: [
           { id: 'nome', rotulo: 'Nome completo', tipo: 'texto', autocomplete: 'name' },
-          { id: 'cpf', rotulo: 'CPF', tipo: 'cpf', placeholder: '000.000.000-00' },
+          {
+            id: 'cpf', rotulo: 'CPF', tipo: 'texto',
+            atributos: () => ({ placeholder: '000.000.000-00', inputmode: 'numeric', maxlength: '14' }),
+            mascara: (valor) => F.mascararCpf(valor),
+          },
         ],
       },
       {

@@ -49,8 +49,8 @@ $originais = [ordered]@{
 
 # Marcadores que a aplicação substitui em cada modelo (usados para conferência).
 $marcadores = @{
-  'docente-presencial' = @('[NOME]', '000.000-ENF', '[PROGRAMA]', '[DIA]', '[MÊS]', '[ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
-  'docente-online'     = @('[NOME]', '000.000-ENF', '[PROGRAMA]', '[DIA]', '[MÊS]', '[ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
+  'docente-presencial' = @('[NOME]', 'Coren-SP 000.000-ENF', '[PROGRAMA]', '[DIA] de [MÊS] de [ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
+  'docente-online'     = @('[NOME]', 'Coren-SP 000.000-ENF', '[PROGRAMA]', '[DIA] de [MÊS] de [ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
   'aluno'              = @('[NOME]', '[000.000.000-00]', '[00/00/0000]', '[00:00]')
 }
 
@@ -200,6 +200,14 @@ function Clear-Metadados([string]$Caminho) {
       $partes.Add([pscustomobject]@{ Nome = $e.FullName; Bytes = $ms.ToArray() })
     }
   } finally { $zip.Dispose() }
+
+  # Já está limpo? Então não reescreve o arquivo.
+  $sujo = $false
+  foreach ($p in $partes) {
+    if ($p.Nome -like 'customXml/*' -or $p.Nome -eq 'docProps/custom.xml') { $sujo = $true }
+    if ($p.Nome -eq 'docProps/core.xml' -and $utf8.GetString($p.Bytes) -match '<dc:creator>[^<]+</dc:creator>|<cp:lastModifiedBy>[^<]+</cp:lastModifiedBy>') { $sujo = $true }
+  }
+  if (-not $sujo) { return }
 
   $fluxo = [System.IO.File]::Open($Caminho, [System.IO.FileMode]::Create)
   try {

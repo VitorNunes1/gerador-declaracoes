@@ -154,45 +154,89 @@
 
   function montarCampos() {
     el.campos.replaceChildren();
-    for (const secao of tipo.secoes) {
+    tipo.secoes.forEach((secao, i) => {
       el.campos.append(h('fieldset', { class: 'secao' },
         h('legend', { text: secao.titulo }),
-        h('div', { class: 'grade-campos' }, secao.campos.map(criarCampo))));
-    }
+        h('div', { class: 'grade-campos' }, secao.campos.map(criarCampo)),
+        secao.eco ? h('p', { class: 'dica dica-secao', 'data-dica-secao': String(i), 'aria-live': 'polite' }) : null));
+    });
     if (tipo.tabelaAulas) el.campos.append(criarSecaoAulas());
+    atualizarCamposDinamicos();
     atualizarDicas();
+  }
+
+  function definirAtributos(e, atributos) {
+    for (const [k, v] of Object.entries(atributos)) {
+      if (v == null) e.removeAttribute(k);
+      else e.setAttribute(k, v);
+    }
+  }
+
+  /** Atributos e máscaras que dependem de outros campos (ex.: número do documento: COREN ou CPF). */
+  function atualizarCamposDinamicos() {
+    for (const secao of tipo.secoes) {
+      for (const def of secao.campos) {
+        const input = $(`campo-${def.id}`);
+        if (!input) continue;
+        if (def.atributos) definirAtributos(input, def.atributos(estado));
+        if (def.mascara) {
+          const mascarado = def.mascara(input.value, estado);
+          if (mascarado !== input.value) {
+            input.value = mascarado;
+            estado[def.id] = mascarado;
+          }
+        }
+      }
+    }
   }
 
   function criarCampo(def) {
     const id = `campo-${def.id}`;
-    const tipoInput = { data: 'date', hora: 'time' }[def.tipo] || 'text';
-    const input = h('input', {
-      id,
-      name: def.id,
-      class: 'entrada',
-      type: tipoInput,
-      'data-chave': def.id,
-      autocomplete: def.autocomplete || 'off',
-      inputmode: def.tipo === 'cpf' ? 'numeric' : null,
-      maxlength: def.tipo === 'cpf' ? '14' : tipoInput === 'text' ? '200' : null,
-      placeholder: def.placeholder || null,
-      spellcheck: tipoInput === 'text' ? 'false' : null,
-      min: tipoInput === 'date' ? '1900-01-01' : null,
-      max: tipoInput === 'date' ? '2100-12-31' : null,
-      'aria-describedby': `${id}-dica ${id}-erro`,
-      required: true,
-    });
-    input.value = estado[def.id] || '';
-    input.addEventListener('input', () => {
-      if (def.tipo === 'cpf') {
-        const mascarado = F.mascararCpf(input.value);
-        if (mascarado !== input.value) input.value = mascarado;
-      }
-      const anterior = estado[def.id];
-      estado[def.id] = input.value;
-      if (def.id === 'data' && tipo.tabelaAulas) sincronizarDatas(anterior, input.value);
-      aoAlterar();
-    });
+    const descricao = `${id}-dica ${id}-erro`;
+    let input;
+    if (def.tipo === 'escolha') {
+      input = h('select', { id, name: def.id, class: 'entrada', 'data-chave': def.id, 'aria-describedby': descricao },
+        def.opcoes.map((o) => h('option', { value: o.valor, text: o.rotulo })));
+      if (!def.opcoes.some((o) => o.valor === estado[def.id])) estado[def.id] = def.opcoes[0].valor;
+      input.value = estado[def.id];
+      input.addEventListener('change', () => {
+        estado[def.id] = input.value;
+        const dependente = def.limpa && $(`campo-${def.limpa}`);
+        if (dependente) {
+          estado[def.limpa] = '';
+          dependente.value = '';
+        }
+        atualizarCamposDinamicos();
+        aoAlterar();
+        if (dependente) dependente.focus();
+      });
+    } else {
+      const tipoInput = { data: 'date', hora: 'time' }[def.tipo] || 'text';
+      input = h('input', {
+        id,
+        name: def.id,
+        class: 'entrada',
+        type: tipoInput,
+        'data-chave': def.id,
+        autocomplete: def.autocomplete || 'off',
+        maxlength: tipoInput === 'text' ? '200' : null,
+        placeholder: def.placeholder || null,
+        spellcheck: tipoInput === 'text' ? 'false' : null,
+        min: tipoInput === 'date' ? '1900-01-01' : null,
+        max: tipoInput === 'date' ? '2100-12-31' : null,
+        'aria-describedby': descricao,
+        required: true,
+      });
+      input.value = estado[def.id] || '';
+      input.addEventListener('input', () => {
+        if (def.mascara) {
+          const mascarado = def.mascara(input.value, estado);
+          if (mascarado !== input.value) input.value = mascarado;
+        }
+        estado[def.id] = input.value;
+        aoAlterar();
+      });
+    }
     return h('div', { class: 'campo' + (def.metade ? ' campo-metade' : '') },
       h('label', { for: id }, def.rotulo, h('span', { class: 'obrigatorio', 'aria-hidden': 'true', text: ' *' })),
       input,
@@ -201,6 +245,13 @@
   }
 
   function atualizarDicas() {
+    tipo.secoes.forEach((secao, i) => {
+      const dica = secao.eco && el.campos.querySelector(`[data-dica-secao="${i}"]`);
+      if (dica) {
+        dica.textContent = secao.eco(estado) || '';
+        dica.hidden = !dica.textContent;
+      }
+    });
     for (const secao of tipo.secoes) {
       for (const def of secao.campos) {
         const dica = el.campos.querySelector(`[data-dica="${def.id}"]`);
@@ -267,7 +318,7 @@
 
   function adicionarAula() {
     const anterior = estado.aulas[estado.aulas.length - 1];
-    const nova = tipo.aulaVazia((anterior && anterior.data) || estado.data || '');
+    const nova = tipo.aulaVazia((anterior && anterior.data) || '');
     estado.aulas.push(nova);
     redesenharAulas();
     aoAlterar();
@@ -285,16 +336,6 @@
     aoAlterar();
     const foco = $(`aula-${Math.min(i, estado.aulas.length - 1)}-data`) || $('botao-adicionar-aula');
     if (foco) foco.focus();
-  }
-
-  /** Aulas sem data (ou com a data anterior da atividade) acompanham a data da atividade. */
-  function sincronizarDatas(anterior, nova) {
-    estado.aulas.forEach((a, i) => {
-      if (!nova || (a.data && a.data !== anterior)) return;
-      a.data = nova;
-      const input = $(`aula-${i}-data`);
-      if (input) input.value = nova;
-    });
   }
 
   function aoAlterar() {
