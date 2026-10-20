@@ -7,7 +7,9 @@
  *     [PROGRAMA] e, na tabela de aulas: 00/00/0000, 00h00 (início), 00h00 (término), [NOME DA AULA].
  *     O trecho "no dia [DIA] de [MÊS] de [ANO]" (ou "[DIA] de [MÊS] de [ANO]", no modelo online)
  *     é retirado, e a frase termina em "conforme abaixo."
- *   Aluno: [NOME], [000.000.000-00], [00/00/0000], [00:00] (início), [00:00] (término)
+ *   Aluno: [NOME], [000.000.000-00], [00/00/0000], [00:00] (início), [00:00] (término).
+ *     A frase passa a ser "Declaramos, para os fins, que [NOME], inscrito(a) no CPF sob nº ...,
+ *     participou da aula do curso de [CURSO] para Enfermeiros realizada neste Conselho no dia ...".
  * A data da assinatura/declaração não é preenchida: fica no documento para preenchimento manual.
  */
 (function (NS) {
@@ -189,6 +191,7 @@
     if (!F.normalizarEspacos(e.nome)) erros.nome = 'Informe o nome completo.';
     if (!e.cpf) erros.cpf = 'Informe o CPF.';
     else if (!F.cpfValido(e.cpf)) erros.cpf = 'CPF inválido. Confira os números.';
+    if (!F.normalizarEspacos(e.curso)) erros.curso = 'Informe o nome do curso.';
     const erroData = erroDeData(e.data, 'Informe a data.');
     if (erroData) erros.data = erroData;
     if (!e.inicio) erros.inicio = 'Informe o horário de início.';
@@ -205,16 +208,28 @@
       nome: F.normalizarEspacos(e.nome),
       cpf: completo ? cpf : '',
       cpfProvisorio: completo ? '' : cpf,
+      curso: F.normalizarEspacos(e.curso),
       data: F.dataNumerica(e.data),
       inicio: F.horaComDoisPontos(e.inicio),
       fim: F.horaComDoisPontos(e.fim),
     };
   }
 
+  // Texto da declaração de aluno: participação em aula de curso. Os trechos do modelo original são
+  // trocados na hora de gerar, mantendo a formatação do modelo.
+  const TEXTO_ALUNO = [
+    ['para os fins de direito, que', 'para os fins, que'],
+    [', esteve neste Conselho tratando de assunto relacionado ao exercício profissional, no dia',
+      ', participou da aula do curso de [CURSO] para Enfermeiros realizada neste Conselho no dia'],
+  ];
+  const regexLiteral = (s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+
   function preencherAluno(doc, v, previa) {
     const op = { marcar: previa };
     const texto = D.paragrafos(doc);
+    for (const [original, novo] of TEXTO_ALUNO) exigir(D.substituir(texto, regexLiteral(original), () => novo), original);
     exigir(D.substituir(texto, /\[NOME\]/g, () => v.nome, op), '[NOME]');
+    exigir(D.substituir(texto, /\[CURSO\]/g, () => v.curso, op), '[CURSO]');
     // Na pré-visualização, o CPF ainda incompleto aparece como digitado (destacado como pendente).
     const cpf = () => v.cpf || (previa && v.cpfProvisorio ? { texto: v.cpfProvisorio } : null);
     exigir(D.substituir(texto, /\[000\.000\.000-00\]/g, cpf, op), '[000.000.000-00]');
@@ -243,8 +258,18 @@
         ],
       },
       {
-        titulo: 'Comparecimento',
+        titulo: 'Aula do curso',
         campos: [
+          {
+            id: 'curso', rotulo: 'Nome do curso', tipo: 'texto', placeholder: 'Ex.: Sutura',
+            eco: (e) => `Na declaração: “participou da aula do curso de ${F.normalizarEspacos(e.curso) || '…'} para Enfermeiros”`,
+            aviso: (e) => {
+              const curso = F.normalizarEspacos(e.curso);
+              if (/para\s+enfermeir[oa]s?$/i.test(curso)) return 'O modelo já tem “para Enfermeiros” depois do nome do curso; ficaria repetido.';
+              if (/^(?:o\s+)?curso\s+(?:de\s+)?/i.test(curso)) return 'O modelo já tem “curso de” antes do nome; digite só o nome (ex.: Sutura).';
+              return null;
+            },
+          },
           {
             id: 'data', rotulo: 'Data da atividade', tipo: 'data',
             eco: (e) => (F.dataNumerica(e.data) ? `Na declaração: no dia ${F.dataNumerica(e.data)}` : null),
@@ -256,7 +281,7 @@
     ],
     tabelaAulas: false,
     notaData: 'A data da declaração (“São Paulo, [DIA DECLARAÇÃO] de [MÊS DECLARAÇÃO] de [ANO DECLARAÇÃO]”) não é preenchida aqui: ela permanece no documento para ser preenchida manualmente depois.',
-    estadoInicial: () => ({ nome: '', cpf: '', data: '', inicio: '', fim: '' }),
+    estadoInicial: () => ({ nome: '', cpf: '', curso: '', data: '', inicio: '', fim: '' }),
     validar: validarAluno,
     valores: valoresAluno,
     preencher: preencherAluno,

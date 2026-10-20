@@ -28,12 +28,18 @@ quando aberto a partir do `index.html`.
 | | Aulas (tabela): data, início, término, nome | `00/00/0000`, `00h00`, `00h00`, `[NOME DA AULA]` | uma linha da tabela para cada aula: `08/10/2026`, `08h00`, `12h00`, nome |
 | Aluno | Nome completo | `[NOME]` | como digitado (negrito) |
 | | CPF | `[000.000.000-00]` | `529.982.247-25` (negrito; os dígitos verificadores são conferidos) |
+| | Nome do curso | (novo trecho) | `Sutura`, em "…da aula do curso de Sutura para Enfermeiros…" |
 | | Data da atividade | `[00/00/0000]` | `08/10/2026` |
 | | Horário de início e de término | `[00:00]` às `[00:00]` | `14:00` às `15:30` |
 
 Nas declarações de docente, o trecho `no dia [DIA] de [MÊS] de [ANO]` (no modelo online,
 `[DIA] de [MÊS] de [ANO]`) é retirado: a frase termina em "…, conforme abaixo.", e as datas
 ficam apenas na tabela de aulas.
+
+Na declaração de aluno, a frase do modelo é ajustada na hora de gerar, mantendo a formatação:
+"Declaramos, para os fins, que **[nome]**, inscrito(a) no CPF sob nº **[CPF]**, participou da aula
+do curso de [curso] para Enfermeiros realizada neste Conselho no dia [data], no período das
+[início] às [término]."
 
 A **data da assinatura** (docentes) e a **data da declaração** (aluno) não têm campo no formulário:
 ficam no documento como no modelo, para preenchimento manual.

@@ -51,7 +51,7 @@ $originais = [ordered]@{
 $marcadores = @{
   'docente-presencial' = @('[NOME]', 'Coren-SP 000.000-ENF', '[PROGRAMA]', '[DIA] de [MÊS] de [ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
   'docente-online'     = @('[NOME]', 'Coren-SP 000.000-ENF', '[PROGRAMA]', '[DIA] de [MÊS] de [ANO]', '00/00/0000', '00h00', '[NOME DA AULA]')
-  'aluno'              = @('[NOME]', '[000.000.000-00]', '[00/00/0000]', '[00:00]')
+  'aluno'              = @('[NOME]', '[000.000.000-00]', '[00/00/0000]', '[00:00]', 'para os fins de direito, que', ', esteve neste Conselho tratando de assunto relacionado ao exercício profissional, no dia')
 }
 
 function Add-EntradaZip($zip, [string]$nome, [byte[]]$bytes) {
