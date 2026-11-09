@@ -235,7 +235,29 @@
     exigir(D.substituir(texto, /\[000\.000\.000-00\]/g, cpf, op), '[000.000.000-00]');
     exigir(D.substituir(texto, /\[00\/00\/0000\]/g, () => v.data, op), '[00/00/0000]');
     exigir(D.substituir(texto, /\[00:00\]/g, (i) => (i === 0 ? v.inicio : v.fim), op), '[00:00]');
+    assinarAluno(texto);
     if (previa) D.substituir(texto, MANUAIS_ALUNO, () => null, { marcar: () => 'manual' });
+  }
+
+  // Bloco de quem assina no modelo de aluno, trocado somente na cópia interna, que tem a assinatura.
+  const ASSINANTE_MODELO_ALUNO = { nome: 'Vivian Zogheib Carqueijo', cargo: 'Gerente', setor: 'Coren-SP Educação', matricula: 'Matrícula 1286' };
+
+  function assinarAluno(texto) {
+    const a = D.assinatura;
+    if (!a) return;
+    const paragrafoDe = (linha) => {
+      const p = texto.find((q) => D.textoDoParagrafo(q).trim() === linha);
+      exigir(p ? 1 : 0, linha);
+      return p;
+    };
+    const m = ASSINANTE_MODELO_ALUNO;
+    const nome = paragrafoDe(m.nome);
+    const setor = paragrafoDe(m.setor);
+    D.substituir([nome], regexLiteral(m.nome), () => a.nome);
+    D.substituir([paragrafoDe(m.cargo)], regexLiteral(m.cargo), () => a.cargo);
+    D.substituir([paragrafoDe(m.matricula)], regexLiteral(m.matricula), () => a.matricula);
+    setor.parentNode.removeChild(setor);
+    D.inserirAssinatura(nome);
   }
 
   const tipoAluno = {

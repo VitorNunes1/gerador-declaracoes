@@ -138,10 +138,15 @@
           const doc = await xml(rel.alvo);
           if (doc) partes.set(id, { doc, imagens: await imagens(zip, await relacoes(zip, rel.alvo)) });
         }
+        const imagensDocumento = await imagens(zip, relsDocumento);
+        if (NS.docx.assinatura) {
+          const bytes = NS.docx.bytesDeBase64(NS.docx.assinatura.png);
+          imagensDocumento.set(NS.docx.ID_ASSINATURA, URL.createObjectURL(new Blob([bytes], { type: 'image/png' })));
+        }
         return {
           estilos: lerEstilos(await xml('word/styles.xml')),
           partes,
-          imagensDocumento: await imagens(zip, relsDocumento),
+          imagensDocumento,
         };
       })());
     }

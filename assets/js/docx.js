@@ -22,6 +22,13 @@
     manual: ['\uE004', '\uE005'],
   };
 
+  // Assinatura digitalizada: só existe na cópia interna (assets/js/assinatura-local.js, fora do Git).
+  const assinatura = window.ASSINATURA_LOCAL || null;
+  const ID_ASSINATURA = 'rIdAssinaturaLocal';
+  const ARQUIVO_ASSINATURA = 'media/assinatura.png';
+  const EMU_POR_PONTO = 12700;
+  const FOLGA_ASSINATURA = 2 * EMU_POR_PONTO; // entre a assinatura e o nome, logo abaixo
+
   const modelos = new Map();
 
   function bytesDeBase64(b64) {
@@ -238,11 +245,71 @@
     }
   }
 
-  /** Monta o .docx: o pacote original com apenas o word/document.xml substituído. */
+  const escaparXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  /**
+   * Coloca a imagem da assinatura logo acima do parágrafo `p` (o nome de quem assina), centralizada
+   * na página. A imagem é flutuante, sobre as linhas em branco do modelo, e não desloca o texto.
+   */
+  function inserirAssinatura(p) {
+    const cx = Math.round(assinatura.largura * EMU_POR_PONTO);
+    const cy = Math.round(assinatura.altura * EMU_POR_PONTO);
+    const descricao = escaparXml(`Assinatura de ${assinatura.nome}`);
+    const run = lerXml(`<w:r xmlns:w="${W}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
+      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:rPr><w:noProof/></w:rPr><w:drawing>
+      <wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">
+      <wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:align>center</wp:align></wp:positionH>
+      <wp:positionV relativeFrom="paragraph"><wp:posOffset>${-(cy + FOLGA_ASSINATURA)}</wp:posOffset></wp:positionV>
+      <wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>
+      <wp:docPr id="9001" name="Assinatura" descr="${descricao}"/><wp:cNvGraphicFramePr/>
+      <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>
+      <pic:nvPicPr><pic:cNvPr id="9001" name="assinatura.png"/><pic:cNvPicPr/></pic:nvPicPr>
+      <pic:blipFill><a:blip r:embed="${ID_ASSINATURA}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+      <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+      </pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`).documentElement;
+    const doc = p.ownerDocument;
+    const propriedades = Array.from(p.children).find((c) => ehW(c, 'pPr'));
+    p.insertBefore(doc.importNode(run, true), propriedades ? propriedades.nextSibling : p.firstChild);
+  }
+
+  const usaAssinatura = (doc) => Array.from(doc.getElementsByTagName('a:blip'))
+    .some((b) => b.getAttribute('r:embed') === ID_ASSINATURA);
+
+  /** Inclui no pacote a imagem da assinatura, com a relação e o tipo de arquivo de que o Word precisa. */
+  async function anexarAssinatura(zip) {
+    const NS_PACOTE_REL = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    const NS_TIPOS = 'http://schemas.openxmlformats.org/package/2006/content-types';
+    zip.file(`word/${ARQUIVO_ASSINATURA}`, bytesDeBase64(assinatura.png), { createFolders: false });
+
+    const caminhoRels = 'word/_rels/document.xml.rels';
+    const rels = lerXml(await zip.file(caminhoRels).async('string'));
+    const relacao = rels.createElementNS(NS_PACOTE_REL, 'Relationship');
+    relacao.setAttribute('Id', ID_ASSINATURA);
+    relacao.setAttribute('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image');
+    relacao.setAttribute('Target', ARQUIVO_ASSINATURA);
+    rels.documentElement.appendChild(relacao);
+    zip.file(caminhoRels, escreverXml(rels));
+
+    const caminhoTipos = '[Content_Types].xml';
+    const tipos = lerXml(await zip.file(caminhoTipos).async('string'));
+    const jaTemPng = Array.from(tipos.getElementsByTagNameNS(NS_TIPOS, 'Default'))
+      .some((d) => (d.getAttribute('Extension') || '').toLowerCase() === 'png');
+    if (!jaTemPng) {
+      const tipoPng = tipos.createElementNS(NS_TIPOS, 'Default');
+      tipoPng.setAttribute('Extension', 'png');
+      tipoPng.setAttribute('ContentType', 'image/png');
+      tipos.documentElement.insertBefore(tipoPng, tipos.documentElement.firstChild);
+      zip.file(caminhoTipos, escreverXml(tipos));
+    }
+  }
+
+  /** Monta o .docx: o pacote original com o word/document.xml substituído (e a assinatura, se houver). */
   async function montar(modelo, doc) {
     converterHifensInseparaveis(doc);
     const zip = await JSZip.loadAsync(modelo.bytes);
     zip.file('word/document.xml', escreverXml(doc));
+    if (usaAssinatura(doc)) await anexarAssinatura(zip);
     return zip.generateAsync({
       type: 'blob',
       mimeType: MIME_DOCX,
@@ -254,5 +321,6 @@
   NS.docx = {
     W, MARCAS, carregar, lerXml, escreverXml, paragrafos, textoDoParagrafo,
     substituir, apagar, linhaComMarcador, repetirLinha, montar,
+    assinatura, ID_ASSINATURA, bytesDeBase64, inserirAssinatura,
   };
 })(window.Declaracoes = window.Declaracoes || {});

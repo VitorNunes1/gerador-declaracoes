@@ -44,6 +44,17 @@ do curso de [curso] para Enfermeiros realizada neste Conselho no dia [data], no 
 A **data da assinatura** (docentes) e a **data da declaração** (aluno) não têm campo no formulário:
 ficam no documento como no modelo, para preenchimento manual.
 
+## Assinatura na declaração de aluno (cópia interna)
+
+Quando existe o arquivo `assets/js/assinatura-local.js`, a declaração de aluno sai assinada: a imagem
+da assinatura entra logo acima do nome e o bloco de quem assina é trocado pelos dados desse arquivo.
+Sem ele, a declaração sai como no modelo, para assinatura manual.
+
+Esse arquivo contém uma assinatura real e está no `.gitignore`: **não deve ir para o GitHub**. O site
+é público e o formulário de aluno não tem login; publicada ali, a assinatura poderia ser baixada por
+qualquer pessoa e usada em declarações com quaisquer dados. Para gerar declarações assinadas, abra o
+`index.html` da pasta interna, que contém o arquivo.
+
 ## Fidelidade aos modelos
 
 - O arquivo gerado é o **próprio modelo original**: os `.doc` foram convertidos para `.docx` sem
@@ -104,6 +115,7 @@ gerador-declaracoes/
 │   ├── js/previa.js              pré-visualização da página
 │   ├── js/app.js                 telas e formulários
 │   ├── js/modelos-embutidos.js   modelos .docx embutidos (gerado pela ferramenta)
+│   ├── js/assinatura-local.js    assinatura real (somente na cópia interna, fora do Git)
 │   ├── img/logo-coren-sp.png     logotipo (extraído do modelo)
 │   └── vendor/jszip.min.js       biblioteca JSZip 3.10.1 (licença MIT)
 ├── modelos/                      modelos .docx convertidos dos originais
