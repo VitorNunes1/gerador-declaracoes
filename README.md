@@ -44,16 +44,21 @@ do curso de [curso] para Enfermeiros realizada neste Conselho no dia [data], no 
 A **data da assinatura** (docentes) e a **data da declaração** (aluno) não têm campo no formulário:
 ficam no documento como no modelo, para preenchimento manual.
 
-## Assinatura na declaração de aluno (cópia interna)
+## Assinatura na declaração de aluno
 
-Quando existe o arquivo `assets/js/assinatura-local.js`, a declaração de aluno sai assinada: a imagem
-da assinatura entra logo acima do nome e o bloco de quem assina é trocado pelos dados desse arquivo.
-Sem ele, a declaração sai como no modelo, para assinatura manual.
+No site, a declaração de aluno sai assinada depois que a **senha da assinatura** é digitada na tela
+do formulário: a imagem entra logo acima do nome e o bloco de quem assina é trocado. Sem a senha, a
+declaração sai como no modelo, para assinatura manual. A senha é pedida de novo a cada aba aberta
+ou recarregada.
 
-Esse arquivo contém uma assinatura real e está no `.gitignore`: **não deve ir para o GitHub**. O site
-é público e o formulário de aluno não tem login; publicada ali, a assinatura poderia ser baixada por
-qualquer pessoa e usada em declarações com quaisquer dados. Para gerar declarações assinadas, abra o
-`index.html` da pasta interna, que contém o arquivo.
+- `assets/js/assinatura-protegida.js` é publicado, mas contém a assinatura e os dados de quem assina
+  criptografados (AES-GCM, chave derivada da senha por PBKDF2). A senha não fica no site nem no Git.
+- `assets/js/assinatura-local.js` contém a assinatura sem criptografia e está no `.gitignore`:
+  **não deve ir para o GitHub**. Na pasta interna, que tem esse arquivo, não é pedida senha.
+
+**Trocar a senha** (por exemplo, se ela vazar): na pasta `gerador-declaracoes`, execute
+`node ferramentas/proteger-assinatura.js`, guarde a senha nova que aparece na tela (ela é mostrada
+uma única vez), troque o número de versão no `index.html` e envie o arquivo gerado ao GitHub.
 
 ## Fidelidade aos modelos
 
@@ -116,6 +121,7 @@ gerador-declaracoes/
 │   ├── js/app.js                 telas e formulários
 │   ├── js/modelos-embutidos.js   modelos .docx embutidos (gerado pela ferramenta)
 │   ├── js/assinatura-local.js    assinatura real (somente na cópia interna, fora do Git)
+│   ├── js/assinatura-protegida.js  assinatura criptografada (gerado pela ferramenta)
 │   ├── img/logo-coren-sp.png     logotipo (extraído do modelo)
 │   └── vendor/jszip.min.js       biblioteca JSZip 3.10.1 (licença MIT)
 ├── modelos/                      modelos .docx convertidos dos originais

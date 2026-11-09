@@ -217,6 +217,11 @@ select.entrada { cursor: pointer; padding-right: 8px; }
 
 .acoes-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 
+.acesso-assinatura { margin-bottom: 16px; }
+.acesso-assinatura[hidden] { display: none; }
+.linha-senha { display: flex; gap: 10px; }
+.linha-senha .entrada { flex: 1; }
+
 /* ---------- painel da pré-visualização ---------- */
 
 .painel-previa {

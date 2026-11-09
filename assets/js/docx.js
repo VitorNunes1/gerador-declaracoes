@@ -22,8 +22,9 @@
     manual: ['\uE004', '\uE005'],
   };
 
-  // Assinatura digitalizada: só existe na cópia interna (assets/js/assinatura-local.js, fora do Git).
-  const assinatura = window.ASSINATURA_LOCAL || null;
+  // Assinatura digitalizada: vem pronta na cópia interna (assets/js/assinatura-local.js, fora do Git);
+  // no site, fica criptografada (assinatura-protegida.js) e só existe na memória depois da senha certa.
+  let assinatura = window.ASSINATURA_LOCAL || null;
   const ID_ASSINATURA = 'rIdAssinaturaLocal';
   const ARQUIVO_ASSINATURA = 'media/assinatura.png';
   const EMU_POR_PONTO = 12700;
@@ -304,6 +305,24 @@
     }
   }
 
+  /** Decifra a assinatura com a senha; devolve false se a senha estiver errada. */
+  async function liberarAssinatura(senha) {
+    const p = window.ASSINATURA_PROTEGIDA;
+    const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']);
+    const chave = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', hash: 'SHA-256', salt: bytesDeBase64(p.sal), iterations: p.iteracoes },
+      material, { name: 'AES-GCM', length: 256 }, false, ['decrypt'],
+    );
+    let claro;
+    try {
+      claro = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytesDeBase64(p.iv) }, chave, bytesDeBase64(p.dados));
+    } catch (e) {
+      return false; // o AES-GCM recusa a decifração quando a chave (senha) não confere
+    }
+    assinatura = JSON.parse(new TextDecoder().decode(claro));
+    return true;
+  }
+
   /** Monta o .docx: o pacote original com o word/document.xml substituído (e a assinatura, se houver). */
   async function montar(modelo, doc) {
     converterHifensInseparaveis(doc);
@@ -321,6 +340,8 @@
   NS.docx = {
     W, MARCAS, carregar, lerXml, escreverXml, paragrafos, textoDoParagrafo,
     substituir, apagar, linhaComMarcador, repetirLinha, montar,
-    assinatura, ID_ASSINATURA, bytesDeBase64, inserirAssinatura,
+    get assinatura() { return assinatura; },
+    assinaturaProtegida: Boolean(window.ASSINATURA_PROTEGIDA),
+    ID_ASSINATURA, bytesDeBase64, inserirAssinatura, liberarAssinatura,
   };
 })(window.Declaracoes = window.Declaracoes || {});

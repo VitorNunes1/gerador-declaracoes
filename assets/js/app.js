@@ -32,6 +32,11 @@
     statusPrevia: $('status-previa'),
     destacar: $('destacar'),
     aviso: $('aviso'),
+    formSenha: $('form-senha'),
+    senha: $('senha-assinatura'),
+    botaoSenha: $('botao-senha'),
+    erroSenha: $('erro-senha'),
+    assinaturaAtiva: $('assinatura-ativa'),
   };
 
   const estados = lerSessao();
@@ -144,10 +149,50 @@
     }
     el.nota.textContent = t.notaData;
     el.resumo.hidden = true;
+    atualizarAcessoAssinatura();
     montarCampos();
     window.scrollTo(0, 0);
     focarTitulo(el.titulo);
     atualizarPrevia(true);
+  }
+
+  // ------------------------------------------------------------------ senha da assinatura
+
+  function atualizarAcessoAssinatura() {
+    const aluno = Boolean(tipo) && tipo.perfil === 'aluno';
+    el.formSenha.hidden = !aluno || !D.assinaturaProtegida || Boolean(D.assinatura);
+    el.assinaturaAtiva.hidden = !aluno || !D.assinatura;
+  }
+
+  async function liberarAssinatura(evento) {
+    evento.preventDefault();
+    if (el.botaoSenha.disabled) return;
+    const mostrarErro = (texto) => {
+      el.erroSenha.textContent = texto;
+      el.erroSenha.hidden = false;
+      el.senha.setAttribute('aria-invalid', 'true');
+    };
+    el.erroSenha.hidden = true;
+    el.senha.removeAttribute('aria-invalid');
+    el.botaoSenha.disabled = true;
+    el.botaoSenha.textContent = 'Verificando…';
+    try {
+      if (await D.liberarAssinatura(el.senha.value.trim())) {
+        el.senha.value = '';
+        atualizarAcessoAssinatura();
+        atualizarPrevia();
+        avisar('Assinatura liberada nesta aba.', 'sucesso');
+      } else {
+        mostrarErro('Senha incorreta.');
+        el.senha.select();
+      }
+    } catch (erro) {
+      console.error(erro);
+      mostrarErro('Não foi possível verificar a senha neste navegador.');
+    } finally {
+      el.botaoSenha.disabled = false;
+      el.botaoSenha.textContent = 'Liberar';
+    }
   }
 
   // ------------------------------------------------------------------ formulário
@@ -448,6 +493,7 @@
       return;
     }
     el.form.addEventListener('submit', gerar);
+    el.formSenha.addEventListener('submit', liberarAssinatura);
     el.limpar.addEventListener('click', () => {
       if (!tipo || !window.confirm('Limpar todos os campos deste formulário?')) return;
       estados[tipo.id] = tipo.estadoInicial();

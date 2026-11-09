@@ -138,15 +138,10 @@
           const doc = await xml(rel.alvo);
           if (doc) partes.set(id, { doc, imagens: await imagens(zip, await relacoes(zip, rel.alvo)) });
         }
-        const imagensDocumento = await imagens(zip, relsDocumento);
-        if (NS.docx.assinatura) {
-          const bytes = NS.docx.bytesDeBase64(NS.docx.assinatura.png);
-          imagensDocumento.set(NS.docx.ID_ASSINATURA, URL.createObjectURL(new Blob([bytes], { type: 'image/png' })));
-        }
         return {
           estilos: lerEstilos(await xml('word/styles.xml')),
           partes,
-          imagensDocumento,
+          imagensDocumento: await imagens(zip, relsDocumento),
         };
       })());
     }
@@ -765,6 +760,11 @@
 
   /** Desenha o documento em `alvo`; devolve o número de páginas. */
   function renderizar(recursos, doc, alvo) {
+    // A assinatura pode ser liberada depois de os recursos do modelo já terem sido preparados.
+    const { assinatura, ID_ASSINATURA, bytesDeBase64 } = NS.docx;
+    if (assinatura && !recursos.imagensDocumento.has(ID_ASSINATURA)) {
+      recursos.imagensDocumento.set(ID_ASSINATURA, URL.createObjectURL(new Blob([bytesDeBase64(assinatura.png)], { type: 'image/png' })));
+    }
     const corpo = doc.getElementsByTagNameNS(NS_W, 'body')[0];
     const secao = filho(corpo, 'sectPr') || Array.from(corpo.getElementsByTagNameNS(NS_W, 'sectPr')).pop();
     const g = geometria(secao);
